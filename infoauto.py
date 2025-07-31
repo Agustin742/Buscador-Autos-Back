@@ -1,16 +1,11 @@
-# import os
+import os
 import requests
 from typing import Optional
 
 
 INFOAUTO_BASE_URL = "https://demo.api.infoauto.com.ar/cars"
-# INFOAUTO_USER = os.getenv("INFOAUTO_USER")
-# INFOAUTO_PASSWORD = os.getenv("INFOAUTO_PASSWORD")
-
-
-# preubas locales
-INFOAUTO_USER = "agustintabarcache74@gmail.com"
-INFOAUTO_PASSWORD = "agustin.API2025"
+INFOAUTO_USER = os.getenv("INFOAUTO_USER")
+INFOAUTO_PASSWORD = os.getenv("INFOAUTO_PASSWORD")
 
 class InfoAutoClient:
     def __init__(self):
