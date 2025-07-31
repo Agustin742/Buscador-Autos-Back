@@ -56,14 +56,14 @@ def buscar_autos(
         if fuentes in ["infoauto", "todas"] and marca and modelo:
             futures.append(executor.submit(buscar_infoauto, marca, modelo))
         
-        #if fuentes in ["ml", "todas"] and q_final:
-            #futures.append(executor.submit(buscar_ml_mejorada, q_final))
+        if fuentes in ["ml", "todas"] and q_final:
+            futures.append(executor.submit(buscar_ml_mejorada, q_final))
         
-        #if fuentes in ["autocosmos", "todas"] and q_final:
-            #futures.append(executor.submit(buscar_autocosmos, q_final))
+        if fuentes in ["autocosmos", "todas"] and q_final:
+            futures.append(executor.submit(buscar_autocosmos, q_final))
         
-        #if fuentes in ["carone", "todas"] and marca and modelo:
-            #futures.append(executor.submit(buscar_carone, marca, modelo))
+        if fuentes in ["carone", "todas"] and marca and modelo:
+            futures.append(executor.submit(buscar_carone, marca, modelo))
         
         # Recopilar resultados conforme van completándose
         for future in concurrent.futures.as_completed(futures, timeout=180):
