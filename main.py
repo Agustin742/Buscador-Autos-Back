@@ -5,6 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from playwright.sync_api import Browser, sync_playwright
 import concurrent.futures
 import re
+from infoauto import InfoAutoClient
+
+infoauto_client = InfoAutoClient()
+
 app = FastAPI()
 
 app.add_middleware(
@@ -49,14 +53,17 @@ def buscar_autos(
         futures = []
         
         # Lanzar scrapers en paralelo según las fuentes solicitadas
-        if fuentes in ["ml", "todas"] and q_final:
-            futures.append(executor.submit(buscar_ml_mejorada, q_final))
+        if fuentes in ["infoauto", "todas"] and marca and modelo:
+            futures.append(executor.submit(buscar_infoauto, marca, modelo))
         
-        if fuentes in ["autocosmos", "todas"] and q_final:
-            futures.append(executor.submit(buscar_autocosmos, q_final))
+        #if fuentes in ["ml", "todas"] and q_final:
+            #futures.append(executor.submit(buscar_ml_mejorada, q_final))
         
-        if fuentes in ["carone", "todas"] and marca and modelo:
-            futures.append(executor.submit(buscar_carone, marca, modelo))
+        #if fuentes in ["autocosmos", "todas"] and q_final:
+            #futures.append(executor.submit(buscar_autocosmos, q_final))
+        
+        #if fuentes in ["carone", "todas"] and marca and modelo:
+            #futures.append(executor.submit(buscar_carone, marca, modelo))
         
         # Recopilar resultados conforme van completándose
         for future in concurrent.futures.as_completed(futures, timeout=180):
@@ -266,74 +273,7 @@ def buscar_carone(marca, modelo):
 
     return autos
 
-def inspeccionar_ML(url_pagina: str):
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
-        
-        try:
-            print(f"🔍 Navegando a: {url_pagina}")
-            page.goto(url_pagina, timeout=60000)
-            
-            # Esperar a que carguen los resultados
-            page.wait_for_selector('ol.ui-search-layout', timeout=10000)
-            
-            # Tomar el primer resultado
-            primer_auto = page.query_selector('li.ui-search-layout__item')
-            
-            if not primer_auto:
-                print("❌ No se encontraron resultados de vehículos")
-                return
-                
-            # Buscar el enlace en la estructura correcta
-            link = primer_auto.query_selector('a.poly-component__title')
-            
-            if not link:
-                print("❌ No se pudo encontrar el enlace al detalle")
-                return
-                
-            detalle_url = link.get_attribute('href')
-            print(f"\n🔗 Enlace al detalle: {detalle_url}")
-            
-            # Navegar a la página de detalle
-            page.goto(detalle_url, timeout=60000)
-            
-            # Extraer información específica
-            print("\n🔍 Buscando información detallada...")
-            
-            # 1. Fecha de publicación
-            fecha = page.query_selector('span.ui-pdp-subtitle')
-            print(f"📅 Fecha: {fecha.inner_text() if fecha else 'No disponible'}")
-            
-            # 2. Estado (Nuevo/Usado)
-            estado = page.query_selector('.ui-pdp-subtitle + span')
-            print(f"🏷️ Estado: {estado.inner_text() if estado else 'No disponible'}")
-            
-            # 3. Descripción
-            descripcion = page.query_selector('.ui-pdp-description__content')
-            print(f"\n📝 Descripción:")
-            print(descripcion.inner_text()[:200] + "..." if descripcion else "No disponible")
-            
-            # 4. Contacto
-            contacto = page.query_selector('.ui-pdp-seller__link-trigger')
-            print(f"\n📞 Contacto: {contacto.inner_text() if contacto else 'No disponible'}")
-            
-        except Exception as e:
-            print(f"\n❌ Error: {str(e)}")
-            
-        finally:
-            input("\nPresiona Enter para cerrar el navegador...")
-            browser.close()
-
-
 def buscar_ml_mejorada(q):
-    """
-    Scraper mejorado para MercadoLibre con:
-    - Resistencia a bloqueos
-    - Extracción de datos completos
-    - Manejo de CAPTCHAs
-    - Reintentos automáticos
-    """
     from random import uniform, randint
     from time import sleep
     import re
@@ -368,7 +308,7 @@ def buscar_ml_mejorada(q):
                 
                 # 2. Navegación inteligente
                 url = f"https://autos.mercadolibre.com.ar/{q.lower().replace(' ', '-')}/_NoIndex_True?cache_bust={randint(1, 10000)}"
-                print(f"\n🔍 Intento {attempt + 1}/{max_retries} - URL: {url}")
+                print(f"Intento {attempt + 1}/{max_retries} - URL: {url}")
                 
                 # Navegar como humano
                 page.goto(url, timeout=120000, wait_until='networkidle')
@@ -376,7 +316,7 @@ def buscar_ml_mejorada(q):
                 
                 # 3. Verificar CAPTCHA
                 if page.query_selector('#captchacharacters'):
-                    print("⚠️ CAPTCHA detectado - Requiere intervención manual")
+                    print("CAPTCHA detectado - Requiere intervención manual")
                     print("Por favor resuelve el CAPTCHA en la ventana del navegador...")
                     input("Presiona Enter después de resolver el CAPTCHA...")
                 
@@ -458,6 +398,55 @@ def buscar_ml_mejorada(q):
     
     return autos
 
+def buscar_infoauto(marca, modelo):
+    try:
+        # Buscqueda del ID de la marca
+        brands = infoauto_client.get_all_brands()
+        brand_id = None
+
+        for b in brands:
+            if b["name"].lower() == marca.lower():
+                brand_id = b["id"]
+                break
+        if not brand_id:
+            return[]
+
+        # buscar modelo por marca
+        modelos = infoauto_client.get_models_by_brand(brand_id)
+        model_found = None
+        for m in modelos:
+            if modelo.lower() in m["description"].lower():
+                model_found = m
+                break
+        if not model_found:
+            return[]
+
+        codia = model_found["codia"]
+
+        # buscar detalles
+        details = infoauto_client.get_models_details(codia)
+
+        # diccionario
+        return [{
+            "fuente": "InfoAuto",
+            "infoauto_destacado": True,
+            "marca": marca,
+            "modelo": modelo,
+            "descripcion": details.get("description"),
+            "foto": details.get("photo_url"),
+            "codia": details.get("codia"),
+            "precios_disponibles": details.get("price"),
+            "anios": f"{details.get('prices_from')} - {details.get('prices_to')}",
+            "link": f"https://www.infoauto.com.ar/auto/{details.get('codia')}",
+            "km": "No disponible",
+            "ubicacion": "No disponible",
+        }]
+
+    except Exception as e:
+        print("Error al buscar InfoAuto: ", e)
+        return []
+
+
 # Funciones auxiliares
 def get_text(element, selector):
     node = element.query_selector(selector)
@@ -509,3 +498,4 @@ def get_additional_details(context, url):
         print(f"Error en detalles: {str(e)}")
     
     return details
+
