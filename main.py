@@ -311,7 +311,7 @@ def buscar_ml_mejorada(q):
                 print(f"Intento {attempt + 1}/{max_retries} - URL: {url}")
                 
                 # Navegar como humano
-                page.goto(url, timeout=120000, wait_until='networkidle')
+                page.goto(url, timeout=500, wait_until='networkidle')
                 sleep(uniform(1.5, 3.5))
                 
                 # 3. Verificar CAPTCHA
