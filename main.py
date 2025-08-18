@@ -53,17 +53,17 @@ def buscar_autos(
         futures = []
         
         # Lanzar scrapers en paralelo según las fuentes solicitadas
-        if fuentes in ["infoauto", "todas"] and marca and modelo:
-            futures.append(executor.submit(buscar_infoauto, marca, modelo))
+        #if fuentes in ["infoauto", "todas"] and marca and modelo:
+            #futures.append(executor.submit(buscar_infoauto, marca, modelo))
         
         if fuentes in ["ml", "todas"] and q_final:
             futures.append(executor.submit(buscar_ml_mejorada, q_final))
         
-        if fuentes in ["autocosmos", "todas"] and q_final:
-            futures.append(executor.submit(buscar_autocosmos, q_final))
+        #if fuentes in ["autocosmos", "todas"] and q_final:
+            #futures.append(executor.submit(buscar_autocosmos, q_final))
         
-        if fuentes in ["carone", "todas"] and marca and modelo:
-            futures.append(executor.submit(buscar_carone, marca, modelo))
+        #if fuentes in ["carone", "todas"] and marca and modelo:
+            #futures.append(executor.submit(buscar_carone, marca, modelo))
         
         # Recopilar resultados conforme van completándose
         for future in concurrent.futures.as_completed(futures, timeout=180):
@@ -346,8 +346,8 @@ def buscar_ml_mejorada(q):
                         continue
                     return []
                 
-                # 5. Procesar resultados (máx 15)
-                for idx, item in enumerate(items[:15]):
+                # 5. Procesar resultados (máx 20)
+                for idx, item in enumerate(items[:20]):
                     try:
                         sleep(uniform(0.5, 2))  # Comportamiento humano
                         
@@ -375,7 +375,7 @@ def buscar_ml_mejorada(q):
                             **data
                         })
                         
-                        print(f"[{idx + 1}/{len(items[:15])}] Procesado: {data['titulo']}")
+                        print(f"[{idx + 1}/{len(items[:20])}] Procesado: {data['titulo']}")
                         
                     except Exception as e:
                         print(f"Error procesando item: {str(e)}")
